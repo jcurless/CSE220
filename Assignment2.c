@@ -8,6 +8,8 @@
 
 #include "common.h"
 
+int page_number = 1;
+
 int main (int argc, char *argv[]) 
 {
 		
@@ -24,4 +26,10 @@ int main (int argc, char *argv[])
 	fclose(source_file);							//closes file
 
 	return 0;
+}
+
+char print_header()
+{
+	printf("Page %d\n", page_number);
+	page_number += 1;
 }
