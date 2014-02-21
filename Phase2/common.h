@@ -4,7 +4,10 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
+#include <sys/param.h>
+#include <stdlib.h>
 
 #define FORM_FEED_CHAR          '\f'
 #define MAX_FILE_NAME_LENGTH    32
@@ -17,6 +20,6 @@ typedef enum {
     FALSE, TRUE,
 }BOOLEAN;
 
-char print_header();
+void print_header();
 
 #endif
