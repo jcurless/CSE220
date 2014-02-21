@@ -1,35 +1,56 @@
 /* Assignment2
-	
-	CSE 220 T/TH 10:30
-	Jackson Curless
-	Dylan Coyle
-	Phillip Day
+CSE 220 T/TH 10:30
+Jackson Curless
+Dylan Coyle
+Phillip Day
 */
 
 #include "common.h"
 
 int page_number = 1;
+int line_number = 51;
+char path[MAX_FILE_NAME_LENGTH];
 
-int main (int argc, char *argv[]) 
+int main (int argc, char *argv[])
 {
-		
-	FILE *source_file = fopen(argv[1], "r");				//opens file in argument1
-	//char time[DATE_STRING_LENGTH] = ctime();
-	//printf("%s", argv[1]);
 
-
-	char line[MAX_SOURCE_LINE_LENGTH];					//creates char array of size 256	
-	while(fgets(line, MAX_SOURCE_LINE_LENGTH -1, source_file) != NULL)	//while loop: reads in characters and stores them to buffer
-	{
-		printf("%s \n", line);						//prints line
+if (realpath (argv[1], path) == 0) 
+	{ 
+	fprintf (stderr, "Path failed: %s\n", strerror (errno));
+	printf("Exiting now. OKAY BUHBYE, YOU STINKER!\n");
+	exit(0); //exits cleanly if there is no such file
 	}
-	fclose(source_file);							//closes file
+realpath(argv[1], path); //retrieves the absolute file path
+FILE *source_file = fopen(argv[1], "r");	//opens file in argument1
 
-	return 0;
+char line[MAX_SOURCE_LINE_LENGTH];	//creates char array of size 256
+while(fgets(line, MAX_SOURCE_LINE_LENGTH -1, source_file) != NULL)	//while loop: reads in characters and stores them to buffer
+	{
+
+		if (line_number > MAX_LINES_PER_PAGE) //quality check
+			{
+				print_header();//calls the print_header function
+			}
+			
+		printf("%d: ", line_number);//lists the line numbers
+		line_number +=1;//increments the line number
+		
+		
+		printf("%s \n", line);	//prints line
+	}
+fclose(source_file);	//closes file
+
 }
 
-char print_header()
+void print_header() //called every time there is a new page
 {
-	printf("Page %d\n", page_number);
-	page_number += 1;
+		printf("\nPage  %d ", page_number); //prints the page number
+		line_number = 1;
+		page_number += 1;//increments
+		
+		printf("%s  ", path); //prints the file path
+		time_t now;	//declares a time	
+		time(&now); //calls the time function for the address of now
+		printf("%s\n\n", ctime(&now));//prints the formatted time
 }
+
