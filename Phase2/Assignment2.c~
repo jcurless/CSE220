@@ -56,7 +56,7 @@ while(fgets(line, MAX_SOURCE_LINE_LENGTH -1, source_file) != NULL)//while loop: 
 			}
 
 	}
-printf("\nThe end of the file has been reached.\n");
+printf("The end of the file has been reached.\n");
 fclose(source_file);	//closes file cleanly
 
 }
