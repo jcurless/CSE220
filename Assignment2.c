@@ -17,7 +17,7 @@ int main (int argc, char *argv[])
 	if (realpath (argv[1], path) == 0) //if there is no file 
 	{ 
 		fprintf (stderr, "Path failed: %s\n", strerror (errno));
-		printf("Exiting now. OKAY BUHBYE, YOU STINKER!\n");	//prints errar message
+		printf("Exiting now. OKAY BUHBYE, YOU STINKER!\n");	//prints error message
 		exit(0); //exits cleanly if there is no such file
 	}
 	realpath(argv[1], path); //retrieves the absolute file path
