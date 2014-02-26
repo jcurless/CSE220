@@ -1,5 +1,8 @@
 #Lister Makefile
-#Dylan Coyle, Jackson Curless, Phillip Day
+#CSE 220
+#Jackson Curless
+#Dylan Coyle
+#Phillip Day
 
 Lister: Assignment2.o
 	gcc -o Lister Assignment2.o
