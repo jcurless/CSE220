@@ -1,4 +1,0 @@
-This file tests that the program will handle lines up to 160 characters
-
------------------------------------------------------This is the 80th char -> !This sentence should go to the next line.
------------------------------------------------------This is the 80th char -> !----------------------------------------------------This is the 160th char -> !
