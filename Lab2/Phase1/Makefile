@@ -1,4 +1,3 @@
-
 hello: HelloWorld.o
 	gcc -o hello HelloWorld.o
 
