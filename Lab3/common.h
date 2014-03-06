@@ -66,7 +66,7 @@ typedef struct
 		char *str;
 		int int_val;
 		double real_val
-	}
+	};
 	TokenCode token_code;
 	struct Token *next;
 }
