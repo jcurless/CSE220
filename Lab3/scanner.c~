@@ -113,13 +113,20 @@ static ??? get_char(???)
      Write some code to set the character ch to the next character in the buffer
      */
 }
-static ??? skip_garbage(???)
+static ??? skip_blanks(???)
 {
     /*
-     Write some code to skip past the comments and blanks in the program and return a pointer
-     to the first non blank character. Watch out for the EOF character.
+     Write some code to skip past the blanks in the program and return a pointer
+     to the first non blank character
      */
     
+}
+static ??? skip_comment(???)
+{
+    /*
+     Write some code to skip past the comments in the program and return a pointer
+     to the first non blank character.  Watch out for the EOF character.
+     */
 }
 static ??? get_word(???)
 {

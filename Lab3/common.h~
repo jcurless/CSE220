@@ -68,7 +68,6 @@ typedef struct
 		double real_val
 	}
 	TokenCode token_code;
-	struct Token *next;
 }
 Token;
 
