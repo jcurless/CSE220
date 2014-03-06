@@ -9,7 +9,6 @@
 #ifndef CSE220_project2_common_h
 #define CSE220_project2_common_h
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <string.h>
@@ -52,31 +51,32 @@ typedef enum
 {
     INTEGER_LIT, REAL_LIT, STRING_LIT,
 }
-LiteralType;
+LiteralType;.
 
-/*****************************
- Literal Value
- *****************************/
-union LiteralValue {
-    char *str;
-    int int_val;
-    double real_val;
-};
+typedef union 
+{
+	char *str;
+	int int_val;
+	double real_val
+} LiteralValue;
 
 /**************
  this is a valid Pascal token.  A token must have a literal type,
- a literal value, and a token code.  It also must have a link to
+ a literal value, and a token code.  It also must have a link to 
  another token since this must be stored as a linked list.
  ***************/
-typedef struct Token
+typedef struct
 {
-
-    LiteralType token_type;
-    union LiteralValue token_val;
-    TokenCode token_code;
-    struct Token *next;
-    
-}
-Token;
+    //Missing code goes here
+	LiteralType token_type;
+	typedef union 
+	{
+		char *str;
+		int int_val;
+		double real_val
+	} LiteralValue; //currently yields an error and not sure why
+	TokenCode token_code;
+	struct Token *next;
+} Token;
 
 #endif
