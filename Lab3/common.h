@@ -1,10 +1,11 @@
 //
-//  common.c
+//  common.h
 //  Lab3
 //
 //  Created by Bryce Holton.
 //  Copyright (c) 2014 Bryce Holton. All rights reserved.
 //
+//	Phillip Day, Jackson Curless, Dylan Coyle
 
 #ifndef CSE220_project2_common_h
 #define CSE220_project2_common_h
@@ -57,11 +58,12 @@ LiteralType;
 /*****************************
  Literal Value
  *****************************/
-union LiteralValue {
+typedef union
+{
     char *str;
     int int_val;
     double real_val;
-};
+}LiteralValue;
 
 /**************
  this is a valid Pascal token.  A token must have a literal type,
@@ -76,7 +78,6 @@ typedef struct Token
     TokenCode token_code;
     struct Token *next;
     
-}
-Token;
+} Token;
 
 #endif
