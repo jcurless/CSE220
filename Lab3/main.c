@@ -5,6 +5,7 @@
 //  Created by Bryce Holton.
 //  Copyright (c) 2014 Bryce Holton. All rights reserved.
 //
+//	Phillip Day, Jackson Curless, Dylan Coyle
 
 #include <stdio.h>
 #include "common.h"
@@ -39,18 +40,31 @@ int main(int argc, const char * argv[])
     quit_scanner(source_file, token_list);
     return 0;
 }
+
 void add_token_to_list(Token *list, Token *new_token)
 {
     //Add new_token to the list knowing that list is a linked list.
     new_token->next = (Token*)malloc(sizeof(Token)); //edited by group on 3/6
     new_token = new_token->next;
 }
+
 void quit_scanner(FILE *src_file, Token *list)
 {
     //write code to free all of the memory for the token list
+	
+	//added by group 3/13
+	Token* clear = NULL;
+	while(list != NULL)
+	{
+		clear = list->next;
+		free(list);
+		list = clear;
+	}
+
 
     fclose(src_file);
 }
+
 FILE *init_lister(const char *name, char source_file_name[], char dte[])
 {
     time_t timer;
@@ -62,4 +76,3 @@ FILE *init_lister(const char *name, char source_file_name[], char dte[])
     strcpy(dte, asctime(localtime(&timer)));
     return file;
 }
-
