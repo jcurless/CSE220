@@ -13,6 +13,6 @@
 #include "common.h"
 
 void print_line(char *, char source_name[], char date_to_print[]);
-void print_token(Token *token);
+void print_token(Token *the_token);
 
 #endif
