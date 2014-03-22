@@ -19,33 +19,34 @@ void add_token_to_list(Token *list, Token *new_token);
 int main(int argc, const char * argv[])
 {
     
-    Token *token;
-    Token *token_list; //This needs to be implemented as a linked list in scanner.h.
-    char source_name[MAX_FILE_NAME_LENGTH];
-    char date[DATE_STRING_LENGTH];
-    FILE *source_file = init_lister(argv[1], source_name, date);
-    init_scanner(source_file, source_name, date);
-
-    token_list = (Token*) malloc(sizeof(Token));
-    token = token_list;
+   Token *token;
+   Token *token_list = (Token*)malloc(sizeof(Token*)); //This needs to be implemented as a linked list in scanner.h.
+   char source_name[MAX_FILE_NAME_LENGTH];
+   char date[DATE_STRING_LENGTH];
+   FILE *source_file = init_lister(argv[1], source_name, date);
+   init_scanner(source_file, source_name, date);
     
    do
-    {
-        token = get_token();
-        add_token_to_list(token_list, token);
-        print_token(token);
-    }
-    while (strncmp(token->token_val.str, ".", 1) != 0);//The sentinel value that ends the loop is "."
+   {
+        token = get_token(); //get the Token
+        add_token_to_list(token_list, token); //add the Token to the list
+        print_token(token);		//print the token
+   }while(!feof(source_file));//The sentinel value that ends the loop is "."
 
-    quit_scanner(source_file, token_list);
-    return 0;
+   quit_scanner(source_file, token_list); //clear the list
+    
+   return 0;
 }
 
 void add_token_to_list(Token *list, Token *new_token)
 {
     //Add new_token to the list knowing that list is a linked list.
-    new_token->next = (Token*)malloc(sizeof(Token)); //edited by group on 3/6
-    new_token = new_token->next;
+    Token *end = list; 
+    while(end->next != NULL)
+    {
+		end = end->next; 
+	}
+	end->next = new_token; //add Token to the end of the list 
 }
 
 void quit_scanner(FILE *src_file, Token *list)
@@ -53,16 +54,13 @@ void quit_scanner(FILE *src_file, Token *list)
     //write code to free all of the memory for the token list
 	
 	//added by group 3/13
-	Token* clear = NULL;
-	while(list != NULL)
+	Token* clear = list;
+	fclose(src_file);	//close the source file
+	while(list->next != NULL)
 	{
-		clear = list->next;
-		free(list);
-		list = clear;
+		list = list-> next;
+		free_tok(clear);				//free the Token
 	}
-
-
-    fclose(src_file);
 }
 
 FILE *init_lister(const char *name, char source_file_name[], char dte[])
@@ -76,3 +74,4 @@ FILE *init_lister(const char *name, char source_file_name[], char dte[])
     strcpy(dte, asctime(localtime(&timer)));
     return file;
 }
+
