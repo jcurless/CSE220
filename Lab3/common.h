@@ -5,7 +5,6 @@
 //  Created by Bryce Holton.
 //  Copyright (c) 2014 Bryce Holton. All rights reserved.
 //
-//	Phillip Day, Jackson Curless, Dylan Coyle
 
 #ifndef CSE220_project2_common_h
 #define CSE220_project2_common_h
@@ -23,6 +22,7 @@
 #define MAX_PRINT_LINE_LENGTH   80
 #define MAX_LINES_PER_PAGE      50
 #define DATE_STRING_LENGTH      26
+
 
 typedef enum
 {
@@ -58,26 +58,18 @@ LiteralType;
 /*****************************
  Literal Value
  *****************************/
-typedef union
-{
-    char *str;
-    int int_val;
-    double real_val;
-}LiteralValue;
 
 /**************
  this is a valid Pascal token.  A token must have a literal type,
  a literal value, and a token code.  It also must have a link to
  another token since this must be stored as a linked list.
  ***************/
-typedef struct Token
+typedef struct 
 {
-
-    LiteralType token_type;
-    union LiteralValue token_val;
-    TokenCode token_code;
-    struct Token *next;
-    
-} Token;
+    TokenCode coder; //code for the Token
+	char* str1;		 //the Token string
+	struct Token* next;  //used to create the list
+}
+Token;
 
 #endif
