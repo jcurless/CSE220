@@ -9,21 +9,24 @@
 
 #include <stdio.h>
 #include "scanner.h"
+#include <ctype.h>
+
+
 
 /*******************
  Static functions needed for the scanner
  You need to design the proper parameter list and
  return types for functions with ???.
  ******************/
-static char get_char(???);
-static char skip_comment(???);
-static char skip_blanks(???);
-static ??? get_word(???);
-static ??? get_number(???);
-static ??? get_string(???);
-static void get_special(*Token that_token);
-static char* downshift_word(char downshift_string);
-static BOOLEAN is_reserved_word(???);
+static char get_char();
+static int skip_comment();
+static int skip_blanks(char *stringer);
+static TokenCode get_word(char *stringer);
+static double get_number();
+static void get_string(char *stringer);
+static TokenCode get_special(char *stringer);
+static void downshift_word(char *da_word);
+static BOOLEAN is_reserved_word(char *da_word, TokenCode* coder);
 
 typedef enum
 {
@@ -40,7 +43,9 @@ static char src_name[MAX_FILE_NAME_LENGTH];
 static char todays_date[DATE_STRING_LENGTH];
 static CharCode char_table[256];  // The character table
 
-static char* line_PTR = NULL; //global pointer to current line that is being evaluated
+static char src_line[MAX_SOURCE_LINE_LENGTH]; //source line currently investigating
+static int index_line;						  //index of the source line
+
 
 typedef struct
 {
@@ -49,50 +54,99 @@ typedef struct
 }
 RwStruct;
 
+//table with special characters
+const RwStruct special_table[] = {
+    {"^",UPARROW},{"*",STAR},{"(",LPAREN},{")",RPAREN},{"-",MINUS},{"+",PLUS},{"=",EQUAL},{"[",LBRACKET},
+    {"]",RBRACKET},{":",COLON},{";",SEMICOLON},{"<",LT},{">",GT},{",",COMMA},{".",PERIOD},{"/",SLASH},{NULL,0},
+    {":=",COLONEQUAL},{"<=",LE},{">=",GE},{"<>",NE},{"..",DOTDOT},{NULL,0}
+};
+
+//table with reserved words
 const RwStruct rw_table[9][10] = {
     {{"do",DO},{"if",IF},{"in",IN},{"of",OF},{"or",OR},{"to",TO},{NULL,0}}, //Reserved words of size 2
     {{"and",AND},{"div",DIV},{"end",END},{"for",FOR},{"mod",MOD},{"nil",NIL},{"not",NOT},{"set",SET},{"var",VAR},{NULL,0}}, //Reserved words of size 3
     {{"case",CASE},{"else",ELSE},{"file",FFILE},{"goto",GOTO},{"then",THEN},{"type",TYPE},{"with",WITH},{NULL,0}}, //Reserved words of size 4
     {{"array",ARRAY},{"begin",BEGIN},{"const",CONST},{"label",LABEL},{"until",UNTIL},{"while",WHILE},{NULL,0}},  //Reserved words of size 5
     {{"downto",DOWNTO}, {"packed",PACKED},{"record",RECORD}, {"repeat",REPEAT},{NULL,0}},  // Reserved words of size 6
-    {{"program", PROGRAM},{NULL,0}}, // Reserved words of size 7
-    {{"function", FUNCTION},{NULL,0}}, // Reserved words of size 8
-    {{"procedure", PROCEDURE},{NULL,0}}  // Reserved words of size 9
+    {{"program", PROGRAM},{NULL,0}}, /* Reserved words of size 7*/
+    {{"function", FUNCTION},{NULL,0}}, /* Reserved words of size 8*/
+    {{"procedure", PROCEDURE},{NULL,0}}  /* Reserved words of size 9*/
 };
+
+Token* create_tok() //create a new token
+{
+	Token* token1 = (Token*)malloc(sizeof(Token));
+	token1->coder = NO_TOKEN;
+	token1->str1 = (char*)malloc(MAX_TOKEN_STRING_LENGTH); //create token string of max length
+	*token1->str1 = '\0';
+	token1->next = NULL;
+	return token1;
+}
+
+int free_tok(Token* the_token) //free the token
+{
+	if(the_token->next !=NULL)
+	{
+		return -1;
+	}
+	
+	free(the_token->str1);   //free token string
+	free(the_token);		// free token
+	
+	return 0;
+}
+
+void ch_table() //creates the char_table
+{
+	unsigned int j;
+	const char special[] = "^*()-+=[]:;<>,./";  //special characters
+
+	for(j = 0; j<256; ++j)
+	{ 
+		char_table[j] = EOF;
+	}
+
+	for(j = 0; j<sizeof(special)-1; ++j)
+	{
+		char_table[special[j]] = SPECIAL;
+	}	
+
+	for (j = 'A'; j<='Z'; ++j)
+	{
+		char_table[j] = LETTER;
+	}
+	
+	for (j = 'a'; j<='z';++j)
+	{
+		char_table[j] = LETTER;
+	}
+  
+	char_table['_'] = LETTER; //underscore is a letter
+
+	for (j = '0'; j<='9';++j)
+	{
+		char_table[j] = DIGIT;
+	}
+
+	char_table['\''] = QUOTE;
+
+	char_table[EOF] = EOF_CODE;
+}
+
 
 void init_scanner(FILE *source_file, char source_name[], char date[])
 {
     src_file = source_file;
     strcpy(src_name, source_name);
     strcpy(todays_date, date);
-
-	//added by group 3/13
-	for(i = 0; i < 256; i++) 
-	{
-    	//the LETTERS
-    	if( (i>65 && i<92) || (i>97 && i<124) ) 
-		{
-    		char_table[i] = LETTER;
-    	}
-    	//the DIGITS
-    	else if(i>48 && i<59) 
-		{
-    		char_table[i] = DIGIT;
-    	}
-    	//SPECIAL
-    	else 
-		{
-    		char_table[i] = SPECIAL;
-    	}
-    }
+	index_line = 0;		//initialize index of the source line
+	*src_line = '\0';   //initialize the source line
     /*******************
      initialize character table, this table is useful for identifying what type of character
      we are looking at by setting our array up to be a copy the ascii table.  Since C thinks of
      a char as like an int you can use ch in get_token as an index into the table.
      *******************/
-	char_table[16] = QUOTE;
-	char_table[20] = EOF;
-
+	ch_table(); //create the char_table
 }
 
 BOOLEAN get_source_line(char source_buffer[])
@@ -101,7 +155,7 @@ BOOLEAN get_source_line(char source_buffer[])
 //    char source_buffer[MAX_SOURCE_LINE_LENGTH];  //I've moved this to a function parameter.  Why did I do that?
     static int line_number = 0;
 
-    if (fgets(source_buffer, MAX_SOURCE_LINE_LENGTH, src_file) != NULL)
+    if(fgets(source_buffer, MAX_SOURCE_LINE_LENGTH, src_file) != NULL) //if  there is a source line
     {
         ++line_number;
         sprintf(print_buffer, "%4d: %s", line_number, source_buffer);
@@ -110,243 +164,260 @@ BOOLEAN get_source_line(char source_buffer[])
     }
     else
     {
-        return (FALSE);
+        return (FALSE); //there is no more lines
     }
 }
 
 Token* get_token()
 {
     char ch; //This can be the current character you are examining during scanning.
-    char token_string[MAX_TOKEN_STRING_LENGTH]; //Store your token here as you build it.
-    char *token_ptr = token_string; //write some code to point this to the beginning of token_string
-    Token *token;
-	CharCode coder;
+    //char token_string[MAX_TOKEN_STRING_LENGTH]; //Store your token here as you build it.
+    //char *token_ptr = token_string; //write some code to point this to the beginning of token_string
+    Token* token1 = create_tok(); //create a new token
+	
     
     //find the token type, token code, and the literal, then initialize it as a Token, then...
-    ch = *line_PTR;
-    int looper = FALSE;
-	get_char(ch);
 
     //1.  Skip past all of the blanks and comments
-	do
-	{
-		if(ch == ' ')
-		{
-			skip_blanks(ch);
-
-			if(ch == '\0')
-			{
-				looper = TRUE;
-				get_char(ch);
-			}
-		}
-		if(ch == '{')
-		{
-			looper = TRUE;
-			ch = skip_comment(ch);
-			get_char(ch); //get char again to see what current char is because it could be space or comment again
-		}
-		else
-		{
-			looper = FALSE;
-		}
-	}while(looper);
+	index_line += skip_blanks(src_line + index_line);		
+	skip_comment();
 
 
 	//now know that it is not comment block or space
     //2.  figure out which case you are dealing with LETTER, DIGIT, QUOTE, EOF, or special, by examining ch
-	coder = char_table[ch];
+	ch = get_char();
 
     //3.  Call the appropriate function to deal with the cases in 2.
-	if(coder == LETTER)
+	switch(char_table[ch]) 
 	{
-		get_word(token_string, &token);
+		case EOF_CODE: //if end of file
+		{
+			token1->coder = END_OF_FILE;
+			break;
+		}
+		case LETTER:  //if a letter 
+		{
+			token1->coder= get_word(token1-> str1);
+		}
+		case DIGIT:	//if a digit
+		{
+			sprintf(token1->str1, "%g", get_number());
+		}
+		case QUOTE:	//if a quote
+		{
+			get_string(token1->str1);
+			token1->coder = STRING;
+			break;
+		}
+		case SPECIAL:	//if a special character
+		{
+			token1->coder = get_special(token1->str1);
+			break;
+		}
+		default:	
+		{
+			++index_line;
+			break;
+		}
 	}
-	else if(coder == DIGIT)
-	{
-		get_number(ch);
-	}
-	else if(coder == QUOTE)
-	{
-		get_string(ch);
-	}
-	else
-	{
-		get_special(&token);
-	}
-    return token;
+    return token1;
 }
 
-static char get_char(char source_buffer[]) //might have to rewrite this function
+static char get_char() 
 {
-    static int cur_pos = 0;
     /*
      If at the end of the current line (how do you check for that?),
      we should call get source line.  If at the EOF (end of file) we should
      set the character ch to EOF and leave the function.
      */
-    if (source_buffer[cur_pos] == '\0') 
+    while(src_line[index_line] == '\0')  //while the index equals the null terminator  
 	{
-        if (!get_source_line(source_buffer)) 
+		if(get_source_line(src_line) == FALSE)		
 		{
-            return EOF;
-        }
-        cur_pos = 0;
+			return EOF;
+		}
+		index_line = skip_blanks(src_line);
     }
-    return source_buffer[cur_pos++];
+	return src_line[index_line];
     /*
      Write some code to set the character ch to the next character in the buffer
      */
 }
 
-static char skip_blanks(char *char_PTR)
+static int skip_blanks(char *stringer)
 {
     /*
      Write some code to skip past the blanks in the program and return a pointer
      to the first non blank character
      */
-	while(*line_PTR == ' ' && *line_PTR != '\0')
+    char *beginning = stringer;
+     
+	while(isspace(*stringer))  //skip the blanks
 	{
-		line_PTR++;
+		++stringer;
 	}
-	*char_PTR = *line_PTR;
-	return *char_PTR;
+	return stringer - beginning;
 }
 
-static char skip_comment(char cur_char)
+static int skip_comment()
 {
-	while(cur_char != '}')
+	char current = get_char();
+	
+	if(current == '{')	
 	{
-		if(cur_char == '\0')
+		while(current != '}' && current != EOF)
 		{
-			get_char(cur_char);
+			++index_line;
+			current = get_char();
 		}
-		else
+		if(current == '}')
 		{
-			line_PTR++;
-			cur_char = *line_PTR;
+			++index_line; //increase the index of line after end of comment is reached 
 		}
 	}
-	line_PTR++;
-
-	cur_char = *line_PTR;
-	return cur_char;
+	return index_line; //return the new index
     /*
      Write some code to skip past the comments in the program and return a pointer
      to the first non blank character.  Watch out for the EOF character.
      */
 }
 
-static ??? get_word(???)
+static TokenCode get_word(char *stringer)
 {
     /*
      Write some code to Extract the word
      */
-
-    //Downshift the word, to make it lower case
+	TokenCode coder; //new TokenCode
+	int counter = 0;
+	char* begin = src_line + index_line;	
+	while(char_table[src_line[index_line]] == LETTER || char_table[src_line[index_line]] == DIGIT) //while the char is a letter or digit
+	{
+		++index_line; 
+	}
+	
+	counter = src_line + index_line - begin; 
+	strncpy(stringer, begin, counter); //the new word
+	
+	downshift_word(stringer); //downshift the word
+	
+	if(!is_reserved_word(stringer, &coder))  //if the word is not a reserved word
+	{
+		return IDENTIFIER;
+	}
 
     /*
      Write some code to Check if the word is a reserved word.
      if it is not a reserved word its an identifier.
      */
+	
+	return coder; //return the TokenCode
 }
-static ??? get_number(???)
+static double get_number()
 {
     /*
      Write some code to Extract the number and convert it to a literal number.
      */
+	int k = 0;
+	float value = .0;
+	sscanf(src_line+index_line, "%f%n", &value, &k); 
+	index_line += k;
+	return value;
 }
-static ??? get_string(???)
+
+static void get_string(char* stringer)
 {
     /*
      Write some code to Extract the string
      */
-}
-static void get_special(Token *that_token)
-{
-	char const *that_ptr = SYMBOL_STRINGS + 5; //symbol pointer
-
-	int sym_code;
-	for(i=5; i <= 20; i++)
+	int current = ++index_line;
+	int len = 0;
+	
+	while(src_line[index_line] != '\'' && src_line[index_line] != 0) //gets all the letters in a string
 	{
-		if(strcmp(line_PTR, that_ptr) == 0)
-		{
-			if(*(line_PTR + 1) == '=' && *line_PTR == ':')
-			{
-				sym_code = 21;
-				line_PTR += 2;
-				break;
-			}
-			else if(*(line_PTR + 1) == '=' && *line_PTR == '<')
-			{
-				sym_code = 22;
-				line_PTR += 2;
-				break;
-			}
-			else if(*(line_PTR +1) == '=' && *line_PTR == '>')
-			{
-				sym_code = 23;
-				line_PTR += 2;
-				break;
-			}
-			else if(*(line_PTR + 1) == '>' && *line_PTR == '<')
-			{
-				sym_code = 24;
-				line_PTR += 2;
-				break;
-			}
-			else if(*(line_PTR + 1) == '.' && *line_PTR == '.')
-			{
-				sym_code = 25;
-				line_PTR += 2;
-				break;
-			}
-			else
-			{
-				line_PTR++;
-				sym_code = i;
-				break
-			}
-		}
-		line_PTR++;
+		++index_line;
 	}
+	len = index_line - current;
+	strncpy(stringer, src_line + current, len);
+	stringer[len] = '\0';
+	++index_line;
+}
+
+static TokenCode get_special(char *stringer)
+{
+	TokenCode coder = NO_TOKEN; //symbol pointer
+	const RwStruct* iter;  //iterator through the Rw tables
+	int current = index_line;
+	int len;
+
+	iter = special_table; 
+
+	while(iter->token_code != NO_TOKEN)
+	{
+		if(iter -> string[0] == src_line[index_line])
+		{
+			++index_line;
+			if(iter->string[1] != '\0')
+			{
+				if(iter->string[1] == src_line[index_line+1])
+				{
+					++index_line;
+					coder = iter->token_code;
+					break;
+				}
+			}
+				
+			coder = iter->token_code;
+			len = index_line - current;
+			strncpy(stringer, (src_line + current), len);
+			stringer[len] = '\0';
+			break;
+			
+		}
+		iter++;
+	}
+	return coder;
     /*
      Write some code to Extract the special token.  Most are single-character
      some are double-character.  Set the token appropriately.
      */
 }
-static char* downshift_word(char downshift_string)
-{
-	int i;
-	int len = strlen(downshift_string);
-	printf("%i\n", len);
-	for(i=0; i < len; i++)
-	{
-		downshift_string[i] = tolower(downshift_string[i]);
-	}
-	return downshift_string;
 
+static void downshift_word(char *da_word)
+{
+	while(*da_word != 0)
+	{
+		*da_word = tolower(*da_word); //downshift the word to lowercase 
+		da_word++; 
+	}
     /*
      Make all of the characters in the incoming word lower case.
      */
 }
-static BOOLEAN is_reserved_word(char const *rwPtr)
+static BOOLEAN is_reserved_word(char *da_word, TokenCode* coder)
 {
     //added by group 3/13
-	char *rw_table_PTR = rw_table;
-	for(int i=0; i<=9; i++)
+	int len = strlen(da_word);
+	const RwStruct* iter;
+	*coder = NO_TOKEN;
+	
+	if(len < 2 || len > 9)  //if the length is not bewteen 2 and 9 return false
 	{
-		for(int j=0; j<=10; j++)
-		{
-			rw_table_PTR = &rw_table[i][j];
-			if(strcmp(rwPtr, rw_table_PTR->string) == 0)
-			{
-				return TRUE;
-			}
-		}
+		return FALSE;
 	}
+	
+	iter = rw_table[len - 2];
+	
+	while(iter->token_code != NO_TOKEN)
+	{
+		if(strcmp(da_word, iter->string) == 0)
+		{
+			*coder = iter->token_code; //see what reserved word it is
+			return TRUE;
+		}
+		++iter;
+	}
+	return FALSE;
 	/*
      Examine the reserved word table and determine if the function input is a reserved word.
      */
-    return FALSE;
 }
