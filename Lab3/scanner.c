@@ -99,11 +99,12 @@ int free_tok(Token* the_token) //free the token
 void ch_table() //creates the char_table
 {
 	unsigned int j;
+	
 	const char special[] = "^*()-+=[]:;<>,./";  //special characters
 
 	for(j = 0; j<256; ++j)
 	{ 
-		char_table[j] = EOF;
+		char_table[j] = EOF; 
 	}
 
 	for(j = 0; j<sizeof(special)-1; ++j)
@@ -113,12 +114,12 @@ void ch_table() //creates the char_table
 
 	for (j = 'A'; j<='Z'; ++j)
 	{
-		char_table[j] = LETTER;
+		char_table[j] = LETTER; //for uppercase letters
 	}
 	
 	for (j = 'a'; j<='z';++j)
 	{
-		char_table[j] = LETTER;
+		char_table[j] = LETTER; //for lowercase letters
 	}
   
 	char_table['_'] = LETTER; //underscore is a letter
@@ -128,9 +129,9 @@ void ch_table() //creates the char_table
 		char_table[j] = DIGIT;
 	}
 
-	char_table['\''] = QUOTE;
+	char_table['\''] = QUOTE; //assign the quote
 
-	char_table[EOF] = EOF_CODE;
+	char_table[EOF] = EOF_CODE; //assign end of file
 }
 
 
@@ -192,26 +193,29 @@ Token* get_token()
 	{
 		case EOF_CODE: //if end of file
 		{
-			token1->coder = END_OF_FILE;
+			token1->coder = END_OF_FILE; //end of file tokencode that ends program
 			break;
 		}
 		case LETTER:  //if a letter 
 		{
-			token1->coder= get_word(token1-> str1);
+			token1->coder= get_word(token1-> str1); //create new token code of type letter
+			break;
 		}
 		case DIGIT:	//if a digit
 		{
 			sprintf(token1->str1, "%g", get_number());
+			token1->coder = NUMBER; //create new tokencode of type number
+			break;
 		}
 		case QUOTE:	//if a quote
 		{
 			get_string(token1->str1);
-			token1->coder = STRING;
+			token1->coder = STRING; //create new tokencode of type string
 			break;
 		}
 		case SPECIAL:	//if a special character
 		{
-			token1->coder = get_special(token1->str1);
+			token1->coder = get_special(token1->str1); //create new tokencode of type special
 			break;
 		}
 		default:	
@@ -254,7 +258,7 @@ static int skip_blanks(char *stringer)
      
 	while(isspace(*stringer))  //skip the blanks
 	{
-		++stringer;
+		++stringer; //increase the pointer
 	}
 	return stringer - beginning;
 }
@@ -265,7 +269,7 @@ static int skip_comment()
 	
 	if(current == '{')	
 	{
-		while(current != '}' && current != EOF)
+		while(current != '}' && current != EOF) //while the current char is not the end of comment or file
 		{
 			++index_line;
 			current = get_char();
@@ -292,15 +296,15 @@ static TokenCode get_word(char *stringer)
 	char* begin = src_line + index_line;	
 	while(char_table[src_line[index_line]] == LETTER || char_table[src_line[index_line]] == DIGIT) //while the char is a letter or digit
 	{
-		++index_line; 
+		++index_line;
 	}
-	
-	counter = src_line + index_line - begin; 
+
+	counter = src_line + index_line - begin;
 	strncpy(stringer, begin, counter); //the new word
-	
+
 	downshift_word(stringer); //downshift the word
-	
-	if(!is_reserved_word(stringer, &coder))  //if the word is not a reserved word
+
+	if(!is_reserved_word(stringer, &coder)) //if the word is not a reserved word
 	{
 		return IDENTIFIER;
 	}
@@ -309,9 +313,22 @@ static TokenCode get_word(char *stringer)
      Write some code to Check if the word is a reserved word.
      if it is not a reserved word its an identifier.
      */
+    const RwStruct* iter;
+    int len = strlen(stringer);
+    iter = rw_table[len - 2];
+
+	while(iter->token_code != NO_TOKEN)
+	{
+		if(strcmp(stringer, iter->string) == 0)
+		{
+			coder = iter->token_code; //see what reserved word it is
+		}
+		++iter;
+	}
 	
 	return coder; //return the TokenCode
 }
+
 static double get_number()
 {
     /*
@@ -319,7 +336,9 @@ static double get_number()
      */
 	int k = 0;
 	float value = .0;
-	sscanf(src_line+index_line, "%f%n", &value, &k); 
+	
+	sscanf(src_line+index_line, "%f%n", &value, &k); //get the number at that index
+	
 	index_line += k;
 	return value;
 }
@@ -337,7 +356,7 @@ static void get_string(char* stringer)
 		++index_line;
 	}
 	len = index_line - current;
-	strncpy(stringer, src_line + current, len);
+	strncpy(stringer, src_line + current, len); //copies the sting to the pointer stringer
 	stringer[len] = '\0';
 	++index_line;
 }
@@ -349,7 +368,7 @@ static TokenCode get_special(char *stringer)
 	int current = index_line;
 	int len;
 
-	iter = special_table; 
+	iter = special_table; //iterator for table of special characters
 
 	while(iter->token_code != NO_TOKEN)
 	{
@@ -361,21 +380,21 @@ static TokenCode get_special(char *stringer)
 				if(iter->string[1] == src_line[index_line+1])
 				{
 					++index_line;
-					coder = iter->token_code;
+					coder = iter->token_code; //sets the tokencode to special char
 					break;
 				}
 			}
 				
 			coder = iter->token_code;
-			len = index_line - current;
-			strncpy(stringer, (src_line + current), len);
+			len = index_line - current; 
+			strncpy(stringer, (src_line + current), len); //sets the new sting size
 			stringer[len] = '\0';
 			break;
 			
 		}
-		iter++;
+		iter++; //iterate until done with special char
 	}
-	return coder;
+	return coder; //returns special 
     /*
      Write some code to Extract the special token.  Most are single-character
      some are double-character.  Set the token appropriately.
@@ -387,7 +406,7 @@ static void downshift_word(char *da_word)
 	while(*da_word != 0)
 	{
 		*da_word = tolower(*da_word); //downshift the word to lowercase 
-		da_word++; 
+		da_word++; //increase the char pointer
 	}
     /*
      Make all of the characters in the incoming word lower case.
@@ -396,17 +415,18 @@ static void downshift_word(char *da_word)
 static BOOLEAN is_reserved_word(char *da_word, TokenCode* coder)
 {
     //added by group 3/13
+
 	int len = strlen(da_word);
-	const RwStruct* iter;
-	*coder = NO_TOKEN;
-	
-	if(len < 2 || len > 9)  //if the length is not bewteen 2 and 9 return false
+	const RwStruct* iter; 
+	*coder = NO_TOKEN; //new TokenCode to save reserved word
+
+	if(len < 2 || len > 9) //if the length is not bewteen 2 and 9 return false
 	{
 		return FALSE;
 	}
-	
+
 	iter = rw_table[len - 2];
-	
+
 	while(iter->token_code != NO_TOKEN)
 	{
 		if(strcmp(da_word, iter->string) == 0)
@@ -414,7 +434,7 @@ static BOOLEAN is_reserved_word(char *da_word, TokenCode* coder)
 			*coder = iter->token_code; //see what reserved word it is
 			return TRUE;
 		}
-		++iter;
+		++iter; //increase iterator
 	}
 	return FALSE;
 	/*
