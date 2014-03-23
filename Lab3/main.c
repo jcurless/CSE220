@@ -20,7 +20,7 @@ int main(int argc, const char * argv[])
 {
     
    Token *token;
-   Token *token_list = (Token*)malloc(sizeof(Token*)); //This needs to be implemented as a linked list in scanner.h.
+   Token *token_list = create_tok(); //This needs to be implemented as a linked list in scanner.h.
    char source_name[MAX_FILE_NAME_LENGTH];
    char date[DATE_STRING_LENGTH];
    FILE *source_file = init_lister(argv[1], source_name, date);
@@ -41,9 +41,9 @@ int main(int argc, const char * argv[])
 void add_token_to_list(Token *list, Token *new_token)
 {
     //Add new_token to the list knowing that list is a linked list.
-    Token *end = list; 
-    while(end->next != NULL)
-    {
+    	Token *end = list; 
+    	while(end->next != NULL)
+    	{
 		end = end->next; 
 	}
 	end->next = new_token; //add Token to the end of the list 
@@ -74,4 +74,3 @@ FILE *init_lister(const char *name, char source_file_name[], char dte[])
     strcpy(dte, asctime(localtime(&timer)));
     return file;
 }
-
